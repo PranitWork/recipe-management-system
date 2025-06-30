@@ -1,46 +1,76 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { recipecontext } from "../context/DataContext";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 
-
-
-
-
 const Updaterecipe = () => {
-
   const { data, setdata } = useContext(recipecontext);
-const params = useParams();
-const navigate = useNavigate();
+  const params = useParams();
+  const navigate = useNavigate();
 
-const recipedata = data.find((recipe) => params.id == recipe.id);
-const { register, handleSubmit, reset } = useForm({
-  defaultValues: {
-    title: recipedata?.title,
-    image: recipedata?.image,
-    ingredients: recipedata?.ingredients,
-    description: recipedata?.description,
-    instructions: recipedata?.instructions,
-  },
-});
+  const [recipedata, setRecipedata] = useState(null);
 
-const updateHandler = (recipe) => {
-  const index = data.findIndex((recipe) => params.id == recipe.id);
-  const copydata = [...data];
-  copydata[index] = { ...copydata[index], ...recipe };
-  setdata(copydata);
-  localStorage.setItem("recipe", JSON.stringify(copydata));
+  const { register, handleSubmit, reset } = useForm();
 
-  toast.success("recipe updated!");
-  navigate(`/recipes/details/${recipedata.id}`);
-};
+  // ✅ Load recipe from context or localStorage
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("recipe")) || [];
+    const allData = data.length > 0 ? data : stored;
 
+    const found = allData.find((recipe) => recipe.id === params.id);
+    setRecipedata(found || null);
+  }, [data, params.id]);
+
+  // ✅ Reset form with recipe data when loaded
+  useEffect(() => {
+    if (recipedata) {
+      reset({
+        title: recipedata.title || "",
+        image: recipedata.image || "",
+        ingredients: recipedata.ingredients || "",
+        description: recipedata.description || "",
+        instructions: recipedata.instructions || "",
+      });
+    }
+  }, [recipedata, reset]);
+
+  // ✅ Update handler
+  const updateHandler = (recipe) => {
+    if (!recipedata) {
+      toast.error("Recipe not found!");
+      return;
+    }
+
+    const updatedRecipe = { ...recipedata, ...recipe }; // Keep same ID
+
+    // Update both context + localStorage
+    const stored = JSON.parse(localStorage.getItem("recipe")) || [];
+    const updatedList = stored.map((r) =>
+      r.id === recipedata.id ? updatedRecipe : r
+    );
+
+    setdata(updatedList);
+    localStorage.setItem("recipe", JSON.stringify(updatedList));
+
+    toast.success("Recipe updated!");
+    navigate(`/recipes/details/${updatedRecipe.id}`);
+  };
+
+  if (!recipedata) {
+    return (
+      <div className="py-20 text-center text-xl font-semibold">
+        Loading recipe data...
+      </div>
+    );
+  }
 
   return (
     <section className="py-20">
       <div className="container mx-auto px-6 max-w-3xl">
-        <h2 className="text-4xl font-bold mb-10 text-center">Update Recipe</h2>
+        <h2 className="text-4xl font-bold mb-10 text-center">
+          Update Recipe
+        </h2>
         <form
           onSubmit={handleSubmit(updateHandler)}
           className="bg-white p-8 rounded-xl shadow-md space-y-6"
@@ -51,7 +81,7 @@ const updateHandler = (recipe) => {
             </label>
             <input
               type="text"
-              {...register("title")}
+              {...register("title", { required: true })}
               placeholder="Enter recipe title"
               className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -105,7 +135,10 @@ const updateHandler = (recipe) => {
             ></textarea>
           </div>
 
-          <button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-md transition">
+          <button
+            type="submit"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-md transition"
+          >
             Update Recipe
           </button>
         </form>

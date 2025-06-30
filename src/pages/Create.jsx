@@ -12,16 +12,15 @@ const Create = () => {
   const {data, setdata}= useContext(recipecontext);
     const{register, handleSubmit, reset} = useForm();
 
-    const SubmitHandler = (recipe) => {
-        recipe.id = nanoid();
-        const copydata = [...data];
-        copydata.push(recipe);
-        setdata(copydata);
-        toast.success("New recipe created!");
-        localStorage.setItem("recipe", JSON.stringify(copydata))
-        reset();
-        navigate("/recipes");
-    };
+ const SubmitHandler = (recipe) => {
+  recipe.id = nanoid();
+  setdata([...data, recipe]);  // This automatically updates localStorage!
+  toast.success("New recipe created!");
+  reset();
+  navigate("/recipes");
+};
+
+
   return (
    
   <section className="py-20">
